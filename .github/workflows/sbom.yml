@@ -3,7 +3,7 @@ name: Generate SBOM and Perform SAST Analysis
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   sbom_and_sast:

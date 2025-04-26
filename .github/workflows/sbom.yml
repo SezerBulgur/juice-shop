@@ -1,36 +1,41 @@
-name: Generate SBOM for Juice Shop Docker Image
+name: Generate SBOM and Perform SAST Analysis
 
 on:
   push:
     branches:
-      - master
-  workflow_dispatch:
+      - main
 
 jobs:
-  generate-sbom-image:
+  sbom_and_sast:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Juice Shop repo
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Build Juice Shop Docker Image
-      run: |
-        docker build -t juice-shop:latest .
+      - name: Build Juice Shop Docker Image with Buildx
+        run: |
+          docker buildx build --load -t juice-shop-pipeline .
 
-    - name: Install Syft
-      run: |
-        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+      - name: Generate SBOM with Buildx
+        run: |
+          docker buildx build --load --output=type=syft,dest=syft-sbom.json .
 
-    - name: Generate SBOM from Docker Image
-      run: |
-        syft juice-shop:latest -o json > sbom-juice-shop-image.json
+      - name: Install Semgrep
+        run: |
+          curl -s https://semgrep.dev/install | bash
 
-    - name: Upload SBOM Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: juice-shop-image-sbom
-        path: sbom-juice-shop-image.json
+      - name: Run Semgrep SAST Analysis
+        run: |
+          semgrep --config=auto --sbom syft-sbom.json --json > semgrep-analysis.json
+
+      - name: Upload SBOM and Semgrep Analysis as Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom_and_sast
+          path: |
+            syft-sbom.json
+            semgrep-analysis.json

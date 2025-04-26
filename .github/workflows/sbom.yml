@@ -93,8 +93,7 @@ jobs:
 
       - name: Dummy Deploy Step
         run: echo "Deploying app... (This is a dummy step)"
-
-
+ 
   # 6) ZAP Scan Job
   zap_scan:
       name: ZAP (DAST)
@@ -126,4 +125,48 @@ jobs:
            path: zap-output/zap-report.xml
 
 
- 
+
+  import-defectdojo:
+    name: Import Scans to DefectDojo
+    needs: zap_scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Download Semgrep Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: semgrep-results
+
+      - name: Download Gitleaks Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: results.sarif
+
+      - name: Download Zap Scan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zap-xml-report
+
+      - name: Import Semgrep SARIF to DefectDojo
+        env:
+          DEFECTDOJO_API_TOKEN: ${{ secrets.DEFECTDOJO_API_TOKEN }}
+        run: |
+         pip install requests
+         python dojoscript.py semgrep.sarif
+
+      - name: Import GitLeaks SARIF to DefectDojo
+        env:
+          DEFECTDOJO_API_TOKEN: ${{ secrets.DEFECTDOJO_API_TOKEN }}
+        run: python dojoscript.py results.sarif
+
+      - name: Import GitLeaks SARIF to DefectDojo
+        env:
+          DEFECTDOJO_API_TOKEN: ${{ secrets.DEFECTDOJO_API_TOKEN }}
+        run: python dojoscript.py zap-report.xml

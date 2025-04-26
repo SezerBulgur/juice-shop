@@ -37,15 +37,31 @@ jobs:
         run: |
           semgrep --config=auto --sarif > semgrep-analysis.sarif
 
-      - name: Upload SBOM and Semgrep SARIF Analysis as Artifacts
+      - name: Install Gitleaks
+        run: |
+          curl -sL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64 -o gitleaks
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/
+
+      - name: Run Gitleaks to Detect Secrets
+        run: |
+          gitleaks detect --source . --report-format sarif --report-path gitleaks-report.sarif
+
+      - name: Upload Artifacts (SBOM, Semgrep SARIF, Gitleaks SARIF)
         uses: actions/upload-artifact@v4
         with:
-          name: sbom_and_sast
+          name: analysis_artifacts
           path: |
             syft-sbom.json
             semgrep-analysis.sarif
+            gitleaks-report.sarif
 
       - name: Upload Semgrep SARIF to GitHub Security Tab
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep-analysis.sarif
+
+      - name: Upload Gitleaks SARIF Results to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: gitleaks-report.sarif

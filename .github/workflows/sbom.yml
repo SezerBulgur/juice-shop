@@ -31,6 +31,7 @@ jobs:
       - name: Install Semgrep
         run: |
           curl -s https://semgrep.dev/install.sh | bash
+          echo "$HOME/.semgrep/bin" >> $GITHUB_PATH
 
       - name: Run Semgrep SAST Analysis and Save Results in SARIF
         run: |
@@ -43,3 +44,8 @@ jobs:
           path: |
             syft-sbom.json
             semgrep-analysis.sarif
+
+      - name: Upload Semgrep SARIF to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: semgrep-analysis.sarif

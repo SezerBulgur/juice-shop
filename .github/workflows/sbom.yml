@@ -3,7 +3,7 @@ name: Generate SBOM and Perform SAST Analysis
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   sbom_and_sast:
@@ -28,14 +28,14 @@ jobs:
         run: |
           curl -s https://semgrep.dev/install | bash
 
-      - name: Run Semgrep SAST Analysis
+      - name: Run Semgrep SAST Analysis and Save Results in SARIF
         run: |
-          semgrep --config=auto --sbom syft-sbom.json --json > semgrep-analysis.json
+          semgrep --config=auto --sbom syft-sbom.json --sarif > semgrep-analysis.sarif
 
-      - name: Upload SBOM and Semgrep Analysis as Artifacts
+      - name: Upload SBOM and Semgrep SARIF Analysis as Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: sbom_and_sast
           path: |
             syft-sbom.json
-            semgrep-analysis.json
+            semgrep-analysis.sarif

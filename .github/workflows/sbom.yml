@@ -3,7 +3,7 @@ name: Generate SBOM and Perform SAST Analysis
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   sbom_and_sast:
@@ -20,17 +20,21 @@ jobs:
         run: |
           docker buildx build --load -t juice-shop-pipeline .
 
-      - name: Generate SBOM with Buildx
+      - name: Install Syft
         run: |
-          docker buildx build --load --output=type=syft,dest=syft-sbom.json .
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM with Syft
+        run: |
+          syft juice-shop-pipeline -o json > syft-sbom.json
 
       - name: Install Semgrep
         run: |
-          curl -s https://semgrep.dev/install | bash
+          curl -s https://semgrep.dev/install.sh | bash
 
       - name: Run Semgrep SAST Analysis and Save Results in SARIF
         run: |
-          semgrep --config=auto --sbom syft-sbom.json --sarif > semgrep-analysis.sarif
+          semgrep --config=auto --sarif > semgrep-analysis.sarif
 
       - name: Upload SBOM and Semgrep SARIF Analysis as Artifacts
         uses: actions/upload-artifact@v4
